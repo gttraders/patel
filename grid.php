@@ -168,15 +168,10 @@ $flash = get_flash_message();
                                     <input type="hidden" name="csrf_token" value="<?= generate_csrf_token() ?>">
                                     <input type="hidden" name="action" value="mark_paid">
                                     <input type="hidden" name="booking_id" value="<?= $booking['id'] ?>">
-                                    <button type="submit" class="btn btn-success">Mark Paid</button>
+                                    <button type="button" class="btn btn-success" onclick="event.stopPropagation(); showPaymentModal(<?= $booking['id'] ?>, '<?= htmlspecialchars($displayName) ?>')">Mark Paid</button>
                                 </form>
                             <?php endif; ?>
-                            <form method="POST" action="booking_actions.php" style="display: inline;" onclick="event.stopPropagation()">
-                                <input type="hidden" name="csrf_token" value="<?= generate_csrf_token() ?>">
-                                <input type="hidden" name="action" value="checkout">
-                                <input type="hidden" name="booking_id" value="<?= $booking['id'] ?>">
-                                <button type="submit" class="btn btn-danger" onclick="return confirm('Complete checkout?')">Checkout</button>
-                            </form>
+                            <button type="button" class="btn btn-danger" onclick="event.stopPropagation(); showCheckoutModal(<?= $booking['id'] ?>, '<?= htmlspecialchars($displayName) ?>')">Checkout</button>
                             <form method="POST" action="booking_actions.php" style="display: inline;" onclick="event.stopPropagation()">
                                 <input type="hidden" name="csrf_token" value="<?= generate_csrf_token() ?>">
                                 <input type="hidden" name="action" value="cancel_booking">
@@ -285,7 +280,7 @@ $flash = get_flash_message();
         <?php endif; ?>
     </div>
 
-    <!-- Payment Modal -->
+    <!-- Payment Modal for New Payments -->
     <div id="paymentModal" class="modal" style="display: none;">
         <div class="modal-content">
             <div class="modal-header">
@@ -323,6 +318,110 @@ $flash = get_flash_message();
         </div>
     </div>
 
+    <!-- Mark Paid Modal -->
+    <div id="markPaidModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Mark as Paid</h3>
+                <button type="button" class="close-modal" onclick="closeMarkPaidModal()">&times;</button>
+            </div>
+            <form method="POST" action="booking_actions.php">
+                <input type="hidden" name="csrf_token" value="<?= generate_csrf_token() ?>">
+                <input type="hidden" name="action" value="mark_paid">
+                <input type="hidden" name="booking_id" id="markPaidBookingId">
+                
+                <div class="form-group">
+                    <label class="form-label">Resource</label>
+                    <input type="text" id="markPaidResourceName" class="form-control" readonly>
+                </div>
+                
+                <div class="form-group">
+                    <label for="paid_amount" class="form-label">Amount Received (₹) *</label>
+                    <input type="number" id="paid_amount" name="amount" class="form-control" min="1" step="0.01" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Payment Method *</label>
+                    <div style="margin: 0.5rem 0;">
+                        <input type="radio" id="paid_online" name="payment_method" value="ONLINE" required>
+                        <label for="paid_online">Online (UPI/Net Banking/Card)</label>
+                    </div>
+                    <div>
+                        <input type="radio" id="paid_offline" name="payment_method" value="OFFLINE" required>
+                        <label for="paid_offline">Offline (Cash)</label>
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn btn-success">Mark as Paid</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Checkout Modal -->
+    <div id="checkoutModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Complete Checkout</h3>
+                <button type="button" class="close-modal" onclick="closeCheckoutModal()">&times;</button>
+            </div>
+            <form method="POST" action="booking_actions.php">
+                <input type="hidden" name="csrf_token" value="<?= generate_csrf_token() ?>">
+                <input type="hidden" name="action" value="checkout">
+                <input type="hidden" name="booking_id" id="checkoutBookingId">
+                
+                <div class="form-group">
+                    <label class="form-label">Resource</label>
+                    <input type="text" id="checkoutResourceName" class="form-control" readonly>
+                </div>
+                
+                <div class="form-group">
+                    <label for="checkout_datetime" class="form-label">Checkout Date & Time *</label>
+                    <input type="datetime-local" id="checkout_datetime" name="checkout_datetime" class="form-control" required
+                           value="<?= date('Y-m-d\TH:i', time()) ?>">
+                </div>
+                
+                <button type="submit" class="btn btn-danger" onclick="return confirm('Complete checkout at selected time?')">Complete Checkout</button>
+            </form>
+        </div>
+    </div>
     <script src="assets/script.js"></script>
+    <script>
+        function showPaymentModal(bookingId, resourceName) {
+            document.getElementById('markPaidBookingId').value = bookingId;
+            document.getElementById('markPaidResourceName').value = resourceName;
+            document.getElementById('markPaidModal').style.display = 'flex';
+        }
+        
+        function closeMarkPaidModal() {
+            document.getElementById('markPaidModal').style.display = 'none';
+        }
+        
+        function showCheckoutModal(bookingId, resourceName) {
+            document.getElementById('checkoutBookingId').value = bookingId;
+            document.getElementById('checkoutResourceName').value = resourceName;
+            document.getElementById('checkoutModal').style.display = 'flex';
+        }
+        
+        function closeCheckoutModal() {
+            document.getElementById('checkoutModal').style.display = 'none';
+        }
+        
+        // Close modals when clicking outside
+        window.addEventListener('click', function(e) {
+            const paymentModal = document.getElementById('paymentModal');
+            const markPaidModal = document.getElementById('markPaidModal');
+            const checkoutModal = document.getElementById('checkoutModal');
+            
+            if (e.target === paymentModal) {
+                closePaymentModal();
+            }
+            if (e.target === markPaidModal) {
+                closeMarkPaidModal();
+            }
+            if (e.target === checkoutModal) {
+                closeCheckoutModal();
+            }
+        });
+    </script>
 </body>
 </html>

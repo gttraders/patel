@@ -133,20 +133,21 @@ function generate_csv_export($bookings, $filename) {
     
     // CSV headers
     fputcsv($output, [
-        'ID', 'Resource', 'Type', 'Client Name', 'Mobile', 'Aadhar/License', 
+        'ID', 'Resource', 'Type', 'Client Name', 'Mobile', 'Aadhar', 'License', 
         'Receipt No', 'Payment Mode', 'Check-in', 'Check-out', 'Status', 
-        'Paid', 'Amount', 'Admin', 'Created'
+        'Paid', 'Amount', 'Admin', 'Created', 'Booking Type', 'Advance Date'
     ]);
     
     // CSV data
     foreach ($bookings as $booking) {
         fputcsv($output, [
             $booking['id'],
-            $booking['display_name'],
+            $booking['resource_name'] ?: $booking['display_name'],
             $booking['type'],
             $booking['client_name'],
             $booking['client_mobile'],
-            $booking['client_aadhar'] ?: $booking['client_license'],
+            $booking['client_aadhar'] ?: '',
+            $booking['client_license'] ?: '',
             $booking['receipt_number'],
             $booking['payment_mode'],
             $booking['check_in'],
@@ -155,7 +156,9 @@ function generate_csv_export($bookings, $filename) {
             $booking['is_paid'] ? 'Yes' : 'No',
             $booking['total_amount'],
             $booking['admin_name'],
-            $booking['created_at']
+            $booking['created_at'],
+            $booking['booking_type'],
+            $booking['advance_date'] ?: ''
         ]);
     }
     

@@ -74,6 +74,14 @@ try {
             break;
             
         case 'mark_paid':
+            // Get payment details from form
+            $amount = floatval($_POST['amount'] ?? 0);
+            $paymentMethod = $_POST['payment_method'] ?? 'OFFLINE';
+            
+            if ($amount <= 0) {
+                redirect_with_message('grid.php', 'Valid amount is required', 'error');
+            }
+            
             // Get booking and resource details
             $stmt = $pdo->prepare("
                 SELECT b.*, r.display_name, r.custom_name 
@@ -90,39 +98,41 @@ try {
             
             $resourceName = $booking['custom_name'] ?: $booking['display_name'];
             
-            // Calculate duration for amount (you can modify this logic)
-            $duration = calculate_duration($booking['check_in']);
-            $amount = max(500, $duration['hours'] * 100); // Minimum 500, then 100 per hour
-            
-            if (mark_booking_paid($bookingId, $pdo)) {
-                // Send checkout SMS
-                require_once 'includes/sms_functions.php';
-                send_checkout_confirmation_sms($bookingId, $pdo);
-                
+            // Mark booking as paid and update amount
+            $stmt = $pdo->prepare("
+                UPDATE bookings 
+                SET is_paid = 1, total_amount = ?, status = 'PAID'
+                WHERE id = ?
+            ");
+            if ($stmt->execute([$amount, $bookingId])) {
                 // Record the payment
                 try {
                     $stmt = $pdo->prepare("
                         INSERT INTO payments (booking_id, resource_id, amount, payment_method, payment_status, admin_id, payment_notes) 
-                        VALUES (?, ?, ?, 'CHECKOUT', 'COMPLETED', ?, ?)
+                        VALUES (?, ?, ?, ?, 'COMPLETED', ?, ?)
                     ");
                     $stmt->execute([
                         $bookingId, 
                         $booking['resource_id'], 
                         $amount, 
+                        $paymentMethod,
                         $_SESSION['user_id'],
-                        "Checkout payment for {$resourceName} - Duration: {$duration['formatted']}"
+                        "Payment received for {$resourceName} - Method: {$paymentMethod}"
                     ]);
                 } catch (Exception $e) {
                     // Continue even if payment recording fails
                 }
                 
-                redirect_with_message('grid.php', 'Booking marked as paid! Room is now available.', 'success');
+                redirect_with_message('grid.php', 'Payment recorded successfully! Amount: ₹' . number_format($amount, 2), 'success');
             } else {
-                redirect_with_message('grid.php', 'Failed to mark as paid', 'error');
+                redirect_with_message('grid.php', 'Failed to record payment', 'error');
             }
             break;
             
         case 'checkout':
+            // Get checkout details from form
+            $checkoutDateTime = $_POST['checkout_datetime'] ?? date('Y-m-d H:i:s');
+            
             // Get booking details for payment recording
             $stmt = $pdo->prepare("
                 SELECT b.*, r.display_name, r.custom_name 
@@ -133,35 +143,44 @@ try {
             $stmt->execute([$bookingId]);
             $booking = $stmt->fetch();
             
-            if (complete_checkout($bookingId, $pdo)) {
+            if (!$booking) {
+                redirect_with_message('grid.php', 'Booking not found', 'error');
+            }
+            
+            // Update booking with custom checkout time
+            $stmt = $pdo->prepare("
+                UPDATE bookings 
+                SET status = 'COMPLETED', 
+                    actual_check_out = ?
+                WHERE id = ?
+            ");
+            if ($stmt->execute([$checkoutDateTime, $bookingId])) {
                 // Send checkout SMS
                 require_once 'includes/sms_functions.php';
                 send_checkout_confirmation_sms($bookingId, $pdo);
                 
                 // Record checkout completion
-                if ($booking) {
-                    $resourceName = $booking['custom_name'] ?: $booking['display_name'];
-                    $duration = calculate_duration($booking['check_in']);
-                    $amount = max(500, $duration['hours'] * 100);
-                    
-                    try {
-                        $stmt = $pdo->prepare("
-                            INSERT INTO payments (booking_id, resource_id, amount, payment_method, payment_status, admin_id, payment_notes) 
-                            VALUES (?, ?, ?, 'CHECKOUT_COMPLETE', 'COMPLETED', ?, ?)
-                        ");
-                        $stmt->execute([
-                            $bookingId, 
-                            $booking['resource_id'], 
-                            $amount, 
-                            $_SESSION['user_id'],
-                            "Checkout completed for {$resourceName} - Duration: {$duration['formatted']}"
-                        ]);
-                    } catch (Exception $e) {
-                        // Continue even if payment recording fails
-                    }
+                $resourceName = $booking['custom_name'] ?: $booking['display_name'];
+                $duration = calculate_duration($booking['check_in'], $checkoutDateTime);
+                $amount = max(500, $duration['hours'] * 100);
+                
+                try {
+                    $stmt = $pdo->prepare("
+                        INSERT INTO payments (booking_id, resource_id, amount, payment_method, payment_status, admin_id, payment_notes) 
+                        VALUES (?, ?, ?, 'CHECKOUT_COMPLETE', 'COMPLETED', ?, ?)
+                    ");
+                    $stmt->execute([
+                        $bookingId, 
+                        $booking['resource_id'], 
+                        $amount, 
+                        $_SESSION['user_id'],
+                        "Checkout completed for {$resourceName} - Duration: {$duration['formatted']} - Checkout: {$checkoutDateTime}"
+                    ]);
+                } catch (Exception $e) {
+                    // Continue even if payment recording fails
                 }
                 
-                redirect_with_message('grid.php', 'Checkout completed successfully!', 'success');
+                redirect_with_message('grid.php', 'Checkout completed successfully at ' . date('M j, g:i A', strtotime($checkoutDateTime)) . '!', 'success');
             } else {
                 redirect_with_message('grid.php', 'Failed to complete checkout', 'error');
             }

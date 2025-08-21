@@ -145,7 +145,7 @@ $flash = get_flash_message();
                 <div class="form-group">
                     <label for="advance_date" class="form-label">Advance Date *</label>
                     <input type="date" id="advance_date" name="advance_date" class="form-control" 
-                           min="<?= date('Y-m-d', strtotime('tomorrow')) ?>" required
+                           min="<?= date('Y-m-d', strtotime('tomorrow', time())) ?>" required
                            value="<?= isset($_POST['advance_date']) ? $_POST['advance_date'] : '' ?>">
                 </div>
                 

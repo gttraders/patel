@@ -168,13 +168,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="form-group">
                     <label for="check_in" class="form-label">Check-in Date & Time *</label>
                     <input type="datetime-local" id="check_in" name="check_in" class="form-control" required
-                           value="<?= isset($_POST['check_in']) ? $_POST['check_in'] : date('Y-m-d\TH:i') ?>">
+                           value="<?= isset($_POST['check_in']) ? $_POST['check_in'] : date('Y-m-d\TH:i', time()) ?>">
                 </div>
                 
                 <div class="form-group">
                     <label for="check_out" class="form-label">Check-out Date & Time *</label>
                     <input type="datetime-local" id="check_out" name="check_out" class="form-control" required
-                           value="<?= isset($_POST['check_out']) ? $_POST['check_out'] : date('Y-m-d\TH:i', strtotime('+1 day')) ?>">
+                           value="<?= isset($_POST['check_out']) ? $_POST['check_out'] : date('Y-m-d\TH:i', strtotime('+1 day', time())) ?>">
                 </div>
                 
                 <div style="display: flex; gap: 1rem;">

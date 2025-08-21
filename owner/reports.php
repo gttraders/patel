@@ -37,7 +37,12 @@ if (isset($_GET['export'])) {
     $whereClause = !empty($whereConditions) ? 'WHERE ' . implode(' AND ', $whereConditions) : '';
     
     $stmt = $pdo->prepare("
-        SELECT b.*, r.display_name, r.type, u.username as admin_name
+        SELECT b.*, 
+               COALESCE(r.custom_name, r.display_name) as resource_name,
+               r.display_name as original_name,
+               r.custom_name,
+               r.type, 
+               u.username as admin_name
         FROM bookings b 
         JOIN resources r ON b.resource_id = r.id 
         JOIN users u ON b.admin_id = u.id 
@@ -52,21 +57,32 @@ if (isset($_GET['export'])) {
         header('Content-Disposition: attachment; filename="lpst_bookings_' . date('Y-m-d') . '.csv"');
         
         $output = fopen('php://output', 'w');
-        fputcsv($output, ['ID', 'Resource', 'Type', 'Client', 'Check-in', 'Check-out', 'Status', 'Paid', 'Amount', 'Admin', 'Created']);
+        fputcsv($output, [
+            'ID', 'Resource', 'Type', 'Client Name', 'Mobile', 'Aadhar', 'License', 
+            'Receipt No', 'Payment Mode', 'Check-in', 'Check-out', 'Status', 
+            'Paid', 'Amount', 'Admin', 'Created', 'Booking Type', 'Advance Date'
+        ]);
         
         foreach ($bookings as $booking) {
             fputcsv($output, [
                 $booking['id'],
-                $booking['display_name'],
+                $booking['resource_name'],
                 $booking['type'],
                 $booking['client_name'],
+                $booking['client_mobile'],
+                $booking['client_aadhar'] ?: '',
+                $booking['client_license'] ?: '',
+                $booking['receipt_number'] ?: '',
+                $booking['payment_mode'] ?: 'OFFLINE',
                 $booking['check_in'],
                 $booking['check_out'],
                 $booking['status'],
                 $booking['is_paid'] ? 'Yes' : 'No',
                 $booking['total_amount'],
                 $booking['admin_name'],
-                $booking['created_at']
+                $booking['created_at'],
+                $booking['booking_type'],
+                $booking['advance_date'] ?: ''
             ]);
         }
         
@@ -125,7 +141,12 @@ $whereClause = !empty($whereConditions) ? 'WHERE ' . implode(' AND ', $whereCond
 
 // Get bookings
 $stmt = $pdo->prepare("
-    SELECT b.*, r.display_name, r.type, u.username as admin_name
+    SELECT b.*, 
+           COALESCE(r.custom_name, r.display_name) as resource_name,
+           r.display_name as original_name,
+           r.custom_name,
+           r.type, 
+           u.username as admin_name
     FROM bookings b 
     JOIN resources r ON b.resource_id = r.id 
     JOIN users u ON b.admin_id = u.id 
@@ -261,6 +282,7 @@ $flash = get_flash_message();
                         <tr style="background: var(--light-color);">
                             <th style="padding: 0.5rem; text-align: left; border-bottom: 1px solid var(--border-color);">ID</th>
                             <th style="padding: 0.5rem; text-align: left; border-bottom: 1px solid var(--border-color);">Resource</th>
+                            <th style="padding: 0.5rem; text-align: left; border-bottom: 1px solid var(--border-color);">Mobile</th>
                             <th style="padding: 0.5rem; text-align: left; border-bottom: 1px solid var(--border-color);">Client</th>
                             <th style="padding: 0.5rem; text-align: left; border-bottom: 1px solid var(--border-color);">Check-in</th>
                             <th style="padding: 0.5rem; text-align: left; border-bottom: 1px solid var(--border-color);">Status</th>
@@ -276,7 +298,10 @@ $flash = get_flash_message();
                                     <?= $booking['id'] ?>
                                 </td>
                                 <td style="padding: 0.5rem; border-bottom: 1px solid var(--border-color);">
-                                    <?= htmlspecialchars($booking['display_name']) ?>
+                                    <?= htmlspecialchars($booking['resource_name']) ?>
+                                </td>
+                                <td style="padding: 0.5rem; border-bottom: 1px solid var(--border-color);">
+                                    <?= htmlspecialchars($booking['client_mobile']) ?>
                                 </td>
                                 <td style="padding: 0.5rem; border-bottom: 1px solid var(--border-color);">
                                     <?= htmlspecialchars($booking['client_name']) ?>

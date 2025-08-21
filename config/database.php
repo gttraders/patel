@@ -17,6 +17,9 @@ class Database {
     public function getConnection() {
         $this->conn = null;
         try {
+            // Set timezone to Asia/Kolkata for Indian time
+            date_default_timezone_set('Asia/Kolkata');
+            
             // Connect directly to your database
             $this->conn = new PDO(
                 "mysql:host=" . $this->host . ";dbname=" . $this->db_name . ";charset=utf8mb4",
@@ -28,6 +31,10 @@ class Database {
                     PDO::ATTR_EMULATE_PREPARES => false
                 ]
             );
+            
+            // Set MySQL timezone to match PHP timezone
+            $this->conn->exec("SET time_zone = '+05:30'");
+            
         } catch(PDOException $exception) {
             error_log("Database connection error: " . $exception->getMessage());
             
