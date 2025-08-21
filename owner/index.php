@@ -88,6 +88,18 @@ $stmt = $pdo->prepare("
 $stmt->execute();
 $recentPayments = $stmt->fetchAll();
 
+// Get recent cancellations
+$stmt = $pdo->prepare("
+    SELECT bc.*, r.display_name, r.custom_name, u.username as admin_name
+    FROM booking_cancellations bc
+    JOIN resources r ON bc.resource_id = r.id 
+    JOIN users u ON bc.cancelled_by = u.id 
+    ORDER BY bc.cancelled_at DESC 
+    LIMIT 10
+");
+$stmt->execute();
+$recentCancellations = $stmt->fetchAll();
+
 $flash = get_flash_message();
 ?>
 

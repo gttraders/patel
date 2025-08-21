@@ -67,8 +67,27 @@ function send_email($to_email, $subject, $body, $attachment_path = null, $attach
         $mail->SMTPAuth = true;
         $mail->Username = $smtp_username;
         $mail->Password = $smtp_password;
-        $mail->SMTPSecure = $smtp_encryption;
+        
+        // Handle encryption settings
+        if ($smtp_encryption === 'ssl') {
+            $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
+        } elseif ($smtp_encryption === 'tls') {
+            $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+        } else {
+            $mail->SMTPSecure = false;
+            $mail->SMTPAuth = false;
+        }
+        
         $mail->Port = $smtp_port;
+        
+        // Additional settings for better compatibility
+        $mail->SMTPOptions = array(
+            'ssl' => array(
+                'verify_peer' => false,
+                'verify_peer_name' => false,
+                'allow_self_signed' => true
+            )
+        );
         
         // Recipients
         $mail->setFrom($smtp_username, $hotel_name);

@@ -369,6 +369,7 @@ $flash = get_flash_message();
                         <select id="smtp_encryption" name="smtp_encryption" class="form-control">
                             <option value="tls" <?= ($settings['smtp_encryption'] ?? 'tls') === 'tls' ? 'selected' : '' ?>>TLS</option>
                             <option value="ssl" <?= ($settings['smtp_encryption'] ?? '') === 'ssl' ? 'selected' : '' ?>>SSL</option>
+                            <option value="none" <?= ($settings['smtp_encryption'] ?? '') === 'none' ? 'selected' : '' ?>>None</option>
                         </select>
                     </div>
                     
